@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site pack200="true" digestURL="http://update.aptana.com/update/secureftp/"> 
+	<description url="http://update.aptana.com/update/secureftp/">Aptana SecureFTP</description>
+	<feature url="features/com.aptana.ide.feature.secureftp_{version.full}.jar" id="com.aptana.ide.feature.secureftp" version="{version.full}">
+		<category name="SecureFTP"/>
+	</feature>
+	<category-def name="SecureFTP" label="Aptana SecureFTP">
+        <description>Adds support for SecureFTP.</description>
+	</category-def>
+</site>

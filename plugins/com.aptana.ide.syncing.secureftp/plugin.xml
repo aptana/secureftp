@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension-point id="sftpVirtualFileManagers" name="SFTP Virtual File Managers" schema="schema/sftpVirtualFileManagers.exsd"/>
+   <extension
+         point="com.aptana.ide.core.protocols">
+      <protocol
+            allowNew="true"
+            class="com.aptana.ide.io.sftp.SftpProtocolManager"
+            decoratorId="com.aptana.ide.syncing.decorator"
+            displayName="%protocol.displayName.SFTP"
+            fileManagerName="%protocol.fileManagerName.SFTP"
+            id="com.aptana.ide.syncing.sftp"
+            name="com.aptana.ide.syncing.sftp"
+            remote="true"/>
+      <protocol
+            allowNew="true"
+            class="com.aptana.ide.io.ftps.FtpsProtocolManager"
+            decoratorId="com.aptana.ide.syncing.decorator"
+            displayName="%protocol.displayName.FTPS"
+            fileManagerName="%protocol.fileManagerName.FTPS"
+            id="com.aptana.ide.syncing.ftps"
+            name="com.aptana.ide.syncing.ftps"
+            remote="true"/>
+   </extension>
+</plugin>
