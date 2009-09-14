@@ -45,20 +45,15 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.layout.LayoutConstants;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.MenuAdapter;
-import org.eclipse.swt.events.MenuEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
 
 import com.aptana.ide.core.StringUtils;
@@ -77,7 +72,6 @@ import com.aptana.ide.ui.ftp.dialogs.FTPConnectionPointPropertyDialog;
 import com.aptana.ide.ui.ftp.internal.FTPAdvancedOptionsComposite;
 import com.aptana.ide.ui.ftp.internal.IOptionsComposite;
 import com.aptana.ide.ui.io.dialogs.IDialogConstants;
-import com.aptana.ide.ui.secureftp.Activator;
 import com.aptana.ide.ui.secureftp.internal.FTPSAdvancedOptionsComposite;
 import com.aptana.ide.ui.secureftp.internal.SFTPAdvancedOptionsComposite;
 
@@ -89,8 +83,7 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 
 	private final ConnectionPointType[] protoTypes;	
 	private ConnectionPointType connectionType;
-	private Image[] protoImages;
-	private Button protocolButton;
+	private Combo protocolButton;
 	private Composite keyAuthComposite;
 	private Button keyAuthButton;
 	private Label keyPathLabel;
@@ -145,13 +138,12 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 				SWT.DEFAULT).create());
 		label.setText(StringUtils.makeFormLabel("Protocol"));
 
-		protoImages = new Image[protoTypes.length];
-		for (int i = 0; i < protoTypes.length; ++i) {
-			protoImages[i] = Activator.getImageDescriptor(
-					StringUtils.format("/icons/full/obj16/{0}.png", protoTypes[i].getType())).createImage();
+		protocolButton = new Combo(parent, SWT.READ_ONLY | SWT.DROP_DOWN);
+		String[] items = new String[protoTypes.length];
+		for (int i = 0; i < items.length; ++i) {
+		    items[i] = protoTypes[i].getName();
 		}
-		
-		protocolButton = new Button(parent, SWT.FLAT);
+		protocolButton.setItems(items);
 		updateProtocolButton();
 		protocolButton.setLayoutData(GridDataFactory.swtDefaults().hint(
 				Math.max(
@@ -159,43 +151,11 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 					protocolButton.computeSize(SWT.DEFAULT, SWT.DEFAULT, true).x
 				), SWT.DEFAULT).create());
 		
-		Menu menu = new Menu(protocolButton);
-		SelectionListener menuItemSelectionListener = new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				changeProtocolType((ConnectionPointType) e.widget.getData());
-			}
-		};
-		for (int i = 0; i < protoTypes.length; ++i) {
-			MenuItem item = new MenuItem(menu, SWT.RADIO);
-			item.setText(protoTypes[i].getName());
-			item.setImage(protoImages[i]);
-			item.setData(protoTypes[i]);
-			item.addSelectionListener(menuItemSelectionListener);
-		}
-		protocolButton.setMenu(menu);
-		
 		/* -- */
 		protocolButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				Button button = (Button) e.widget;
-				Menu menu = button.getMenu();
-				menu.setLocation(button.toDisplay(e.x, e.y + button.getBounds().height));
-				menu.setVisible(true);
-			}
-		});
-		
-		menu.addMenuListener(new MenuAdapter() {
-			@Override
-			public void menuShown(MenuEvent e) {
-				for (MenuItem i : ((Menu) e.widget).getItems()) {
-					i.setSelection(false);
-				}
-				int currentIndex = Arrays.asList(protoTypes).indexOf(getConnectionPointType());
-				if (currentIndex != -1) {
-					((Menu) e.widget).getItem(currentIndex).setSelection(true);
-				}
+			    changeProtocolType(protoTypes[protocolButton.getSelectionIndex()]);
 			}
 		});
 	}
@@ -260,20 +220,6 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 		updateAdvancedOptions();
 	}
 
-	/* (non-Javadoc)
-	 * @see com.aptana.ide.ui.ftp.dialogs.FTPConnectionPointPropertyDialog#dispose()
-	 */
-	@Override
-	protected void dispose() {
-		if (protoImages != null) {
-			for (Image i : protoImages) {
-				i.dispose();
-			}
-			protoImages = null;
-		}
-		super.dispose();
-	}
-	
 	/* (non-Javadoc)
 	 * @see com.aptana.ide.ui.ftp.dialogs.FTPConnectionPointPropertyDialog#getAuthId(com.aptana.ide.filesystem.ftp.IBaseRemoteConnectionPoint)
 	 */
@@ -371,7 +317,6 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 		if (currentIndex == -1) {
 			currentIndex = 0;
 		}
-		protocolButton.setImage(protoImages[currentIndex]);
 		protocolButton.setText(protoTypes[currentIndex].getName());		
 	}
 	
