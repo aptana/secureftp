@@ -587,7 +587,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 						continue;
 					}
 					ftpFileCache.put(dirPath.append(ftpFile.getName()), ftpFile);
-					if (name != null && name.equals(ftpFile.getName())) {
+					if (name != null && name.equalsIgnoreCase(ftpFile.getName())) {
 						result = ftpFile;
 					}
 				}
