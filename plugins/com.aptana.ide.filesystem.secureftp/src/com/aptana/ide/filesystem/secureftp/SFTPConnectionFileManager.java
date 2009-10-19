@@ -217,7 +217,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Public Key Authentication failed: {0}", e.getLocalizedMessage()), e));
 					}
 					if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
-						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Authentication failed: {0}", e.getLocalizedMessage()), e));
+						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Authentication failed: {0}", "Login/password is incorrect."), e));
 					}
 					promptPassword(StringUtils.format("SFTP Authentication for {0}", host), "Password was not accepted. Please specify again.");
 					safeQuit();
