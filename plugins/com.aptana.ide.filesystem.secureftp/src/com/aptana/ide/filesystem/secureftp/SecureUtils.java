@@ -86,4 +86,13 @@ public final class SecureUtils {
 	public static String getSSH_HOME() {
 		return Platform.getPreferencesService().getString(JSchCorePlugin.ID, IConstants.KEY_SSH2HOME, PreferenceInitializer.SSH_HOME_DEFAULT, null);
 	}
+
+	public static String[] getPrivateKeys() {
+		String value = Platform.getPreferencesService().getString(JSchCorePlugin.ID, IConstants.KEY_PRIVATEKEY, IConstants.PRIVATE_KEYS_DEFAULT, null);
+		if (value != null && value.length() > 0) {
+			return value.trim().split(",");
+		}
+		return new String[0];
+	}
+
 }

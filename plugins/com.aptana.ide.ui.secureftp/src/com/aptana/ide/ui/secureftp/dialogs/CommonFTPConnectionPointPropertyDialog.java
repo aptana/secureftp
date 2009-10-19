@@ -364,7 +364,16 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 				dlg.setText("Specify Private Key file");
 				String ssh_home = SecureUtils.getSSH_HOME();
 				if (ssh_home != null && ssh_home.length() != 0) {
-					dlg.setFilterPath(ssh_home);
+					File dir = new File(ssh_home);
+					if (dir.exists() && dir.isDirectory()) {
+						dlg.setFilterPath(ssh_home);
+						for (String key : SecureUtils.getPrivateKeys()) {
+							if (new File(dir, key).exists()) {
+								dlg.setFileName(key);
+								break;
+							}
+						}
+					}
 				}
 				String keyFilePath = dlg.open();
 				if (keyFilePath == null) {
