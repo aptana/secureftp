@@ -392,6 +392,7 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 				keyPathLabel.setText(keyFilePath);
 				break;
 			}
+			passwordText.setText(StringUtils.EMPTY);
 		} else {
 			keyPathLabel.setText("No Private Key selected");
 			makeVisible(passwordLabel, true);
@@ -400,7 +401,6 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 		}
 		updateLayout();
 		passwordLabel.setText(StringUtils.makeFormLabel(enabled ? "Passphrase" : "Password"));
-		passwordText.setText(StringUtils.EMPTY);
 		savePasswordButton.setSelection(false);
 	}
 	
