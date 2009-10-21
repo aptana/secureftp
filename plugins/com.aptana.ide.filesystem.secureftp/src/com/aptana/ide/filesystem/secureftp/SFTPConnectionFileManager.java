@@ -42,6 +42,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -529,7 +530,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			try {
 				ftpClient.delete(path.lastSegment());
 			} catch (FTPException e) {
-				System.out.println(e);
+			    IdeLog.logError(SecureFTPPlugin.getDefault(), "Failed to delete " + path.toString(), e);
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
@@ -559,7 +560,9 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 				ftpClient.rename(sourcePath.toPortableString(), destinationPath.toPortableString());
 			} catch (FTPException e) {
 				throwFileNotFound(e, sourcePath);
-				System.out.println(e);
+                IdeLog.logError(SecureFTPPlugin.getDefault(), StringUtils
+                        .format("Failed to rename {0} to {1}", new Object[] { sourcePath,
+                                destinationPath }), e);
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
