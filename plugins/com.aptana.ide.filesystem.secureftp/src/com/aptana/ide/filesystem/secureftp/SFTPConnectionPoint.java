@@ -41,6 +41,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
 
 import com.aptana.ide.core.StringUtils;
 import com.aptana.ide.core.epl.IMemento;
@@ -364,6 +365,10 @@ public class SFTPConnectionPoint extends ConnectionPoint implements ISFTPConnect
 		if (connectionFileManager == null) {
 			// find contributed first
 			connectionFileManager = (ISFTPConnectionFileManager) super.getAdapter(ISFTPConnectionFileManager.class);
+			if (connectionFileManager == null
+					&& Platform.getAdapterManager().hasAdapter(this, ISFTPConnectionFileManager.class.getName())) {
+				connectionFileManager = (ISFTPConnectionFileManager) Platform.getAdapterManager().loadAdapter(this, ISFTPConnectionFileManager.class.getName());
+			}
 			if (connectionFileManager == null) {
 				connectionFileManager = new SFTPConnectionFileManager();
 			}

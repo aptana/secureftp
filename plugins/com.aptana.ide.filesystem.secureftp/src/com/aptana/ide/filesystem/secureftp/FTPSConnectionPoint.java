@@ -39,6 +39,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
 
 import com.aptana.ide.core.StringUtils;
 import com.aptana.ide.core.epl.IMemento;
@@ -394,6 +395,10 @@ public class FTPSConnectionPoint extends ConnectionPoint implements IFTPSConnect
 		if (connectionFileManager == null) {
 			// find contributed first
 			connectionFileManager = (IFTPSConnectionFileManager) super.getAdapter(IFTPSConnectionFileManager.class);
+			if (connectionFileManager == null
+					&& Platform.getAdapterManager().hasAdapter(this, IFTPSConnectionFileManager.class.getName())) {
+				connectionFileManager = (IFTPSConnectionFileManager) Platform.getAdapterManager().loadAdapter(this, IFTPSConnectionFileManager.class.getName());
+			}
 			if (connectionFileManager == null) {
 				connectionFileManager = new FTPSConnectionFileManager();
 			}
