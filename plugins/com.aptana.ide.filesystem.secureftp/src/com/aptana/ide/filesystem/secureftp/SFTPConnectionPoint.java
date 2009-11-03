@@ -35,6 +35,8 @@
 
 package com.aptana.ide.filesystem.secureftp;
 
+import java.util.UUID;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -45,6 +47,7 @@ import com.aptana.ide.core.epl.IMemento;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.ConnectionPoint;
 import com.aptana.ide.core.io.CoreIOPlugin;
+import com.aptana.ide.core.io.IConnectionPoint15Constants;
 import com.aptana.ide.core.io.vfs.IConnectionFileManager;
 
 /**
@@ -374,5 +377,36 @@ public class SFTPConnectionPoint extends ConnectionPoint implements ISFTPConnect
 		return connectionFileManager;
 	}
 
-	
+    @Override
+    public boolean load15Data(String data) {
+        String[] items = data.split(IConnectionPoint15Constants.DELIMITER);
+
+        if (items.length < 6) {
+            return false;
+        }
+
+        setName(items[0]);
+        setHost(items[1]);
+        if (items[2] == null || "".equals(items[2])) { //$NON-NLS-1$
+            setPath(Path.ROOT);
+        } else {
+            setPath(new Path(items[2]));
+        }
+        setLogin(items[3]);
+        setPassword(items[4].toCharArray());
+        String id = items[5].replace(IConnectionPoint15Constants.DELIMITER.charAt(0), ' ').trim();
+        try {
+            setId(id);
+        } catch (NumberFormatException e) {
+            setId(UUID.randomUUID().toString());
+        }
+
+        if (items.length >= 9) {
+            setPort(Integer.parseInt(items[8]));
+        }
+        if (items.length >= 13) {
+            setKeyFilePath(new Path(items[12]));
+        }
+        return true;
+    }
 }
