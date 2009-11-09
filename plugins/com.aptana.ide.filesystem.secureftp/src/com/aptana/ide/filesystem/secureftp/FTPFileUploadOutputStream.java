@@ -43,6 +43,7 @@ import com.enterprisedt.net.ftp.FTPClient;
 import com.enterprisedt.net.ftp.FTPClientInterface;
 import com.enterprisedt.net.ftp.FTPException;
 import com.enterprisedt.net.ftp.FileTransferOutputStream;
+import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 
 /**
  * @author Max Stepanov
@@ -54,15 +55,17 @@ import com.enterprisedt.net.ftp.FileTransferOutputStream;
 	private FileTransferOutputStream ftpOutputStream;
 	private String filename;
 	private Date modificationTime;
+	private long permissions;
 	
 	/**
 	 * 
 	 */
-	public FTPFileUploadOutputStream(FTPClientInterface ftpClient, FileTransferOutputStream ftpOutputStream, String filename, Date modificationTime) {
+	public FTPFileUploadOutputStream(FTPClientInterface ftpClient, FileTransferOutputStream ftpOutputStream, String filename, Date modificationTime, long permissions) {
 		this.ftpClient = ftpClient;
 		this.ftpOutputStream = ftpOutputStream;
 		this.filename = filename;
 		this.modificationTime = modificationTime;
+		this.permissions = permissions;
 	}
 
 	private void safeQuit(boolean failed) {
@@ -113,6 +116,12 @@ import com.enterprisedt.net.ftp.FileTransferOutputStream;
 						ftpClient.delete(filename);
 					}
 					ftpClient.rename(ftpOutputStream.getRemoteFile(), filename);
+                    if (ftpClient instanceof FTPClient) {
+                        ((FTPClient) ftpClient).site("CHMOD " + Long.toOctalString(permissions) //$NON-NLS-1$
+                                + " " + filename); //$NON-NLS-1$
+                    } else if (ftpClient instanceof SSHFTPClient) {
+                        ((SSHFTPClient) ftpClient).changeMode((int) (permissions & 0777), filename);
+                    }
 				}
 			} catch (FTPException e) {
 				safeQuit(true);
