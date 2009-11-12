@@ -402,6 +402,7 @@ public class CommonFTPConnectionPointPropertyDialog extends FTPConnectionPointPr
 		updateLayout();
 		passwordLabel.setText(StringUtils.makeFormLabel(enabled ? "Passphrase" : "Password"));
 		savePasswordButton.setSelection(false);
+		validate();
 	}
 	
 	private static void makeVisible(Control control, boolean visible) {
