@@ -619,8 +619,11 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			downloadFtpClient.setRemoteHost(host);
 			downloadFtpClient.setRemotePort(port);
 			Policy.checkCanceled(monitor);
-			downloadFtpClient.setAuthentication(login, String.copyValueOf(password));
-			/* TODO: key auth */
+			if (keyFilePath != null) {
+				downloadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
+			} else {
+				downloadFtpClient.setAuthentication(login, String.copyValueOf(password));
+			}
 			downloadFtpClient.connect();
 			monitor.worked(1);
 			Policy.checkCanceled(monitor);
@@ -677,7 +680,11 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			uploadFtpClient.setValidator(ftpClient.getValidator());
 			uploadFtpClient.setRemoteHost(host);
 			uploadFtpClient.setRemotePort(port);
-			uploadFtpClient.setAuthentication(login, String.copyValueOf(password));
+			if (keyFilePath != null) {
+				uploadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
+			} else {
+				uploadFtpClient.setAuthentication(login, String.copyValueOf(password));
+			}
 			Policy.checkCanceled(monitor);
 			uploadFtpClient.connect();
 			monitor.worked(1);

@@ -48,6 +48,7 @@ import org.eclipse.jsch.internal.core.PreferenceInitializer;
 import com.aptana.ide.core.StringUtils;
 import com.enterprisedt.net.j2ssh.transport.publickey.InvalidSshKeyException;
 import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
+import com.enterprisedt.net.puretls.LoadProviders;
 
 /**
  * @author Max Stepanov
@@ -64,6 +65,7 @@ public final class SecureUtils {
 
 	public static boolean isKeyPassphraseProtected(File keyFile) throws CoreException {
 		try {
+			LoadProviders.init();
 			SshPrivateKeyFile privateKeyFile = SshPrivateKeyFile.parse(keyFile);
 			return privateKeyFile.isPassphraseProtected();
 		} catch (InvalidSshKeyException e) {
