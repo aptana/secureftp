@@ -189,7 +189,7 @@ public class SFTPAdvancedOptionsComposite extends Composite implements IOptionsC
 			port = Integer.parseInt(portText.getText());
 		} catch (NumberFormatException e) {
 		}
-		if (port <= 0 || port > Short.MAX_VALUE) {
+		if (port <= 0) {
 			return "Please specify correct port number";
 		}
 		return null;
