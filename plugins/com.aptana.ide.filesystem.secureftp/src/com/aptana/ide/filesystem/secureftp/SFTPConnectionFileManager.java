@@ -187,6 +187,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 								break;
 							}
 						}
+					} else if (password == null) {
+						password = new char[0];
 					}
 					try {
 						ftpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
