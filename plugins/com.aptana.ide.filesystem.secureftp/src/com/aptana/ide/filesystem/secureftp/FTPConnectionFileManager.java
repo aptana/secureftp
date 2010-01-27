@@ -121,7 +121,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			this.host = host;
 			this.port = port;
 			this.login = login;
-			this.password = password;
+			this.password = (password == null) ? new char[0] : password;
 			this.basePath = basePath != null ? basePath : Path.ROOT;
 			this.authId = Policy.generateAuthId("FTP", login, host, port); //$NON-NLS-1$
 			this.transferType = transferType;
@@ -195,11 +195,6 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 		Assert.isTrue(ftpClient != null, Messages.FTPConnectionFileManager_not_initialized);
 		monitor = Policy.monitorFor(monitor);
 		try {
-			if (ftpClient.connected()) {
-				monitor.beginTask(Messages.FTPConnectionFileManager_checking_connection, IProgressMonitor.UNKNOWN);
-				ftpClient.pwd();
-				return;
-			}
 			cwd = null;
 			cleanup();
 
@@ -231,14 +226,10 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			while (true) {
 				monitor.subTask(Messages.FTPConnectionFileManager_connecting);
 				ftpClient.connect();
-				if (password == null) {
-					if (IFTPConstants.LOGIN_ANONYMOUS.equals(login)) {
-						password = new char[0];
-					} else if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
-						password = new char[0];
-					} else {
-						getOrPromptPassword(StringUtils.format(Messages.FTPConnectionFileManager_ftp_auth, host), Messages.FTPConnectionFileManager_specify_password);
-					}
+				if (password.length == 0 && !IFTPConstants.LOGIN_ANONYMOUS.equals(login) && (context == null || !context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT))) {
+                    getOrPromptPassword(StringUtils.format(
+                            Messages.FTPConnectionFileManager_ftp_auth, host),
+                            Messages.FTPConnectionFileManager_specify_password);
 				}
 				Policy.checkCanceled(monitor);
 				monitor.subTask(Messages.FTPConnectionFileManager_authenticating);

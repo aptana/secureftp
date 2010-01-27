@@ -106,7 +106,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			this.port = port;
 			this.keyFilePath = keyFilePath;
 			this.login = login;
-			this.password = password;
+			this.password = (password == null) ? new char[0] : password;
 			this.basePath = basePath != null ? basePath : Path.ROOT;
 			if (keyFilePath != null) {
 				this.authId = Policy.generateAuthId("SFTP/PUBLICKEY", login, host, port); //$NON-NLS-1$				
@@ -149,11 +149,6 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		Assert.isTrue(ftpClient != null, "SFTP connection is not initialized");
 		monitor = Policy.monitorFor(monitor);
 		try {
-			if (ftpClient.connected()) {
-				monitor.beginTask("Checking connection", IProgressMonitor.UNKNOWN);
-				ftpClient.pwd();
-				return;
-			}
 			cwd = null;
 			cleanup();
 
@@ -172,7 +167,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 					} catch (IOException e) {
 						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Private Key file {0} cannot be read.", keyFilePath.toOSString())));
 					}
-					if (privateKeyFile.isPassphraseProtected() && (password == null || password.length == 0)) {
+					if (privateKeyFile.isPassphraseProtected() && password.length == 0) {
 						if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
 							password = new char[0];
 						} else {
@@ -191,20 +186,16 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 					try {
 						ftpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
 					} catch (InvalidSshKeyException e) {
-						if (password == null || password.length == 0) {
+						if (password.length == 0) {
 							throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Private Key {0} requires passphrase.", keyFilePath.toOSString()), e));													
 						}
 						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Passphrase for Private Key {0} is invalid.", keyFilePath.toOSString()), e));						
 					}
 				} else {
-					if (password == null) {
-						if (ISFTPConstants.LOGIN_ANONYMOUS.equals(login)) {
-							password = new char[0];
-						} else if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
-							password = new char[0];
-						} else {
-							getOrPromptPassword(StringUtils.format("SFTP Authentication for {0}", host), "Please specify password.");
-						}
+					if (password.length == 0 && !ISFTPConstants.LOGIN_ANONYMOUS.equals(login) && (context == null || !context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT))) {
+                        getOrPromptPassword(
+                                StringUtils.format("SFTP Authentication for {0}", host),
+                                "Please specify password.");
 					}
 					ftpClient.setAuthentication(login, String.copyValueOf(password));
 				}
@@ -232,7 +223,6 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 
 			ftpClient.setType(ISFTPConstants.TRANSFER_TYPE_ASCII.equals(transferType)
 					? FTPTransferType.ASCII : FTPTransferType.BINARY);
-			
 		} catch (OperationCanceledException e) {
 			safeQuit();
 			throw e;

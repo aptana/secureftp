@@ -91,7 +91,7 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 			this.host = host;
 			this.port = port;
 			this.login = login;
-			this.password = password;
+			this.password = (password == null) ? new char[0] : password;
 			this.basePath = basePath != null ? basePath : Path.ROOT;
 			this.authId = Policy.generateAuthId("FTPS", login, host, port); //$NON-NLS-1$
 			this.transferType = transferType;
@@ -120,11 +120,6 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 		SSLFTPClient ftpsClient = (SSLFTPClient) ftpClient;
 		monitor = Policy.monitorFor(monitor);
 		try {
-			if (ftpClient.connected()) {
-				monitor.beginTask("Checking connection", IProgressMonitor.UNKNOWN);
-				ftpClient.pwd();
-				return;
-			}
 			cwd = null;
 			cleanup();
 
@@ -186,14 +181,9 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 					}
 					ftpsClient.auth(securityMechanism);
 				}
-				if (password == null) {
-					if (IFTPConstants.LOGIN_ANONYMOUS.equals(login)) {
-						password = new char[0];
-					} else if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
-						password = new char[0];
-					} else {
-						getOrPromptPassword(StringUtils.format("FTPS Authentication for {0}", host), "Please specify password.");
-					}
+				if (password.length == 0 && !IFTPConstants.LOGIN_ANONYMOUS.equals(login) && (context == null || !context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT))) {
+                    getOrPromptPassword(StringUtils.format("FTPS Authentication for {0}", host),
+                            "Please specify password.");
 				}
 				Policy.checkCanceled(monitor);
 				monitor.subTask("authenticating");
