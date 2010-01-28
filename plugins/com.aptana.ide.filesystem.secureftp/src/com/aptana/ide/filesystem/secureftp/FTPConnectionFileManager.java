@@ -1017,7 +1017,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 	}
 	
 	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
-		if (statSupported == null || statSupported == Boolean.TRUE) {
+		if (statSupported == Boolean.TRUE) {
 			FTPFile[] ftpFiles = null;
 			try {
 				ftpFiles = ftpSTAT(dirPath.addTrailingSeparator().toPortableString());
@@ -1044,7 +1044,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			return ftpClient.dirDetails("-a"); //$NON-NLS-1$
 		}
 	}
-	
+
 	private void recursiveDeleteTree(IPath path, IProgressMonitor monitor, MultiStatus status) throws IOException, ParseException {
 		try {
 			changeCurrentDir(path);
