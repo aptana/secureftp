@@ -95,6 +95,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	private IPath cwd;
 	private Map<IPath, FTPFile> ftpFileCache = new ExpiringMap<IPath, FTPFile>(CACHE_TTL);
 
+	private int connectionRetryCount;
+
 	/* (non-Javadoc)
 	 * @see com.aptana.ide.filesystem.secureftp.ISFTPConnectionFileManager#init(java.lang.String, int, org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IPath, java.lang.String, char[], java.lang.String, java.lang.String, java.lang.String)
 	 */
@@ -417,7 +419,15 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Fetching file info failed", e));			
+			// forces one connection retry
+			if (connectionRetryCount < 1) {
+				connectionRetryCount++;
+				connect(monitor);
+				return fetchFile(path, options, monitor);
+			} else {
+				connectionRetryCount = 0;
+				throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Fetching file info failed", e));
+			}	
 		}
 		ExtendedFileInfo fileInfo = new ExtendedFileInfo(path.lastSegment());
 		fileInfo.setExists(false);
@@ -452,7 +462,15 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Fetching directory failed", e));			
+			// forces one connection retry
+			if (connectionRetryCount < 1) {
+				connectionRetryCount++;
+				connect(monitor);
+				return fetchFiles(path, options, monitor);
+			} else {
+				connectionRetryCount = 0;
+				throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Fetching directory failed", e));
+			}
 		} finally {
 			monitor.done();
 		}
