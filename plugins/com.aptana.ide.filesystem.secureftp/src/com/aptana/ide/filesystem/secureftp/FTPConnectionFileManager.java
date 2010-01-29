@@ -239,7 +239,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 					ftpClient.login(login, String.copyValueOf(password));
 				} catch (FTPException e) {
 					Policy.checkCanceled(monitor);
-					if ("331".equals(ftpClient.getLastValidReply().getReplyCode())) { //$NON-NLS-1$
+					if (ftpClient.getLastValidReply() == null || "331".equals(ftpClient.getLastValidReply().getReplyCode())) { //$NON-NLS-1$
 						if (context != null && context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT)) {
 							throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Authentication failed: {0}", e.getLocalizedMessage()), e));
 						}
