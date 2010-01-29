@@ -71,11 +71,12 @@ import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.preferences.PreferenceUtils;
 import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
+import com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.ExpiringMap;
 import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.aptana.ide.filesystem.ftp.IFTPConnectionFileManager;
-import com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.IFTPConstants;
+import com.aptana.ide.filesystem.ftp.Policy;
 import com.enterprisedt.net.ftp.FTPClient;
 import com.enterprisedt.net.ftp.FTPConnectMode;
 import com.enterprisedt.net.ftp.FTPConnectionClosedException;
@@ -1015,9 +1016,15 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 		}
 		return fileFactory.parse(data);
 	}
-	
+
+	private FTPFile[] ftpLIST(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
+		changeCurrentDir(dirPath);
+		Policy.checkCanceled(monitor);
+		return ftpClient.dirDetails("-a"); //$NON-NLS-1$
+	}
+
 	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
-		if (statSupported == Boolean.TRUE) {
+		if (statSupported != Boolean.FALSE) {
 			FTPFile[] ftpFiles = null;
 			try {
 				ftpFiles = ftpSTAT(dirPath.addTrailingSeparator().toPortableString());
@@ -1028,20 +1035,17 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 					throwFileNotFound(e, dirPath);
 				}
 			}
-			if ((statSupported == null && (ftpFiles == null || ftpFiles.length == 0))
-					|| (ftpFiles.length == 1 && ftpFiles[0].getLinkedName() != null && dirPath.equals(Path
-							.fromPortableString(ftpFiles[0].getName())))) {
-				statSupported = Boolean.FALSE;
-				Policy.checkCanceled(monitor);
-				return listFiles(dirPath, monitor);
+			if (ftpFiles == null || ftpFiles.length < 2) {
+				if (statSupported == null) {
+					statSupported = Boolean.FALSE;
+				}
+				return ftpLIST(dirPath, monitor);
 			} else if (statSupported == null) {
 				statSupported = Boolean.TRUE;
 			}
 			return ftpFiles;
 		} else {
-			changeCurrentDir(dirPath);
-			Policy.checkCanceled(monitor);
-			return ftpClient.dirDetails("-a"); //$NON-NLS-1$
+			return ftpLIST(dirPath, monitor);
 		}
 	}
 
