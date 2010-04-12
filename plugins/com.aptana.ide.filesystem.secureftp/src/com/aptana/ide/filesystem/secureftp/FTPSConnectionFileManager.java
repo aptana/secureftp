@@ -71,6 +71,7 @@ import com.enterprisedt.net.ftp.ssl.SSLFTPClient;
  */
 public class FTPSConnectionFileManager extends FTPConnectionFileManager implements IFTPSConnectionFileManager {
 	
+	private boolean validateCertificate;
 	private String securityMechanism;
 	
 	/* (non-Javadoc)
@@ -82,9 +83,9 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.filesystem.secureftp.IFTPSConnectionFileManager#init(java.lang.String, int, org.eclipse.core.runtime.IPath, java.lang.String, char[], boolean, boolean, java.lang.String, java.lang.String, java.lang.String)
+	 * @see com.aptana.ide.filesystem.secureftp.IFTPSConnectionFileManager#init(java.lang.String, int, org.eclipse.core.runtime.IPath, java.lang.String, char[], boolean, boolean, java.lang.String, java.lang.String, java.lang.String, boolean)
 	 */
-	public void init(String host, int port, IPath basePath, String login, char[] password, boolean explicit, boolean passive, String transferType, String encoding, String timezone) {
+	public void init(String host, int port, IPath basePath, String login, char[] password, boolean explicit, boolean passive, String transferType, String encoding, String timezone, boolean validateCertificate) {
 		Assert.isTrue(ftpClient == null, "FTPS connection has been already initiated");
 		try {
 			ftpClient = createFTPClient();
@@ -96,18 +97,19 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 			this.authId = Policy.generateAuthId("FTPS", login, host, port); //$NON-NLS-1$
 			this.transferType = transferType;
 			this.timezone = timezone != null && timezone.length() == 0 ? null : timezone;
-			initFTPSClient((SSLFTPClient) ftpClient, explicit, passive, encoding);
+			this.validateCertificate = validateCertificate;
+			initFTPSClient((SSLFTPClient) ftpClient, explicit, passive, encoding, validateCertificate);
 		} catch (Exception e) {
 			IdeLog.logImportant(SecureFTPPlugin.getDefault(), "FTPS connection initialization failed", e);
 			ftpClient = null;
 		}
 	}
 
-	protected static void initFTPSClient(SSLFTPClient ftpsClient, boolean explicit, boolean passive, String encoding) throws IOException, FTPException {
+	protected static void initFTPSClient(SSLFTPClient ftpsClient, boolean explicit, boolean passive, String encoding, boolean validateCertificate) throws IOException, FTPException {
 		initFTPClient(ftpsClient, passive, encoding);
 		ftpsClient.setImplicitFTPS(true);
 		ftpsClient.setCustomValidator(new SSLHostValidator());
-		ftpsClient.setValidateServer(true);
+		ftpsClient.setValidateServer(validateCertificate);
 		ftpsClient.setImplicitFTPS(!explicit);
 	}
 
@@ -259,7 +261,7 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 	@Override
 	protected void initAndAuthFTPClient(FTPClient newFtpClient, IProgressMonitor monitor) throws IOException, FTPException {
 		SSLFTPClient newFtpsClient = (SSLFTPClient) newFtpClient;
-		initFTPSClient(newFtpsClient, !((SSLFTPClient) ftpClient).isImplicitFTPS(), ftpClient.getConnectMode() == FTPConnectMode.PASV, ftpClient.getControlEncoding());
+		initFTPSClient(newFtpsClient, !((SSLFTPClient) ftpClient).isImplicitFTPS(), ftpClient.getConnectMode() == FTPConnectMode.PASV, ftpClient.getControlEncoding(), validateCertificate);
 		newFtpClient.setRemoteHost(host);
 		newFtpClient.setRemotePort(port);
 		Policy.checkCanceled(monitor);

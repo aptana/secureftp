@@ -35,10 +35,6 @@
 
 package com.aptana.ide.filesystem.secureftp;
 
-import java.util.Vector;
-
-import com.enterprisedt.net.ftp.ssl.SSLFTPCertificate;
-import com.enterprisedt.net.ftp.ssl.SSLFTPException;
 import com.enterprisedt.net.ftp.ssl.SSLFTPStandardValidator;
 
 /**
@@ -46,20 +42,6 @@ import com.enterprisedt.net.ftp.ssl.SSLFTPStandardValidator;
  *
  */
 public class SSLHostValidator extends SSLFTPStandardValidator {
-
-	/* (non-Javadoc)
-	 * @see com.enterprisedt.net.ftp.ssl.SSLFTPStandardValidator#validateServerCertificate(boolean, java.util.Vector, java.lang.String)
-	 */
-	@SuppressWarnings("unchecked")
-	@Override
-	public boolean validateServerCertificate(boolean recommendValidate, Vector certificateChain, String serverHostName) throws SSLFTPException {
-		if (super.validateServerCertificate(recommendValidate, certificateChain, serverHostName)) {
-			return true;
-		}
-		SSLFTPCertificate cert = (SSLFTPCertificate)certificateChain.lastElement();
-		rootCertificateStore.add(cert);
-		return true;
-	}
 
 	/* (non-Javadoc)
 	 * @see com.enterprisedt.net.ftp.ssl.SSLFTPStandardValidator#checkCommonName(java.lang.String, java.lang.String)

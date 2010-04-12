@@ -54,5 +54,17 @@ public interface IFTPSConnectionPoint extends IBaseFTPConnectionPoint {
 	 * @param explicit the explicit to set
 	 */
 	public void setExplicit(boolean explicit);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean isValidateCertificate();
+	
+	/**
+	 * 
+	 * @param validate
+	 */
+	public void setValidateCertificate(boolean validate);
 
 }

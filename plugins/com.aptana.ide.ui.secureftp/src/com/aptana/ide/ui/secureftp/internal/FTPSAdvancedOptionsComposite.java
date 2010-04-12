@@ -74,6 +74,7 @@ public class FTPSAdvancedOptionsComposite extends Composite implements IOptionsC
 	
 	private IConnectionDialog connectionDialog;
 	private Combo securityMethodCombo;
+	private Button validateCertificateCheckbox;
 	private Combo modeCombo;
 	private Text portText;
 	private Combo encodingCombo;
@@ -107,7 +108,11 @@ public class FTPSAdvancedOptionsComposite extends Composite implements IOptionsC
 		securityMethodCombo.add("Implicit - FTP over SSL");
 		securityMethodCombo.setLayoutData(GridDataFactory.swtDefaults().hint(
 				securityMethodCombo.computeSize(SWT.DEFAULT, SWT.DEFAULT, true).x, SWT.DEFAULT)
-				.span(4, 1).create());
+				.span(3, 1).create());
+		
+		validateCertificateCheckbox = new Button(this, SWT.CHECK);
+		validateCertificateCheckbox.setText("Validate Certificate");
+		validateCertificateCheckbox.setLayoutData(GridDataFactory.swtDefaults().create());
 
 		label = new Label(this, SWT.NONE);
 		label.setLayoutData(GridDataFactory.swtDefaults().hint(
@@ -212,6 +217,7 @@ public class FTPSAdvancedOptionsComposite extends Composite implements IOptionsC
 		removeListeners();
 		try {
 			securityMethodCombo.select(ftpsConnectionPoint.isExplicit() ? 0 : 1);
+			validateCertificateCheckbox.setSelection(ftpsConnectionPoint.isValidateCertificate());
 			modeCombo.select(ftpsConnectionPoint.isPassiveMode() ? 1 : 0);
 			portText.setText(Integer.toString(ftpsConnectionPoint.getPort()));
 			int index = encodingCombo.indexOf(String.valueOf(ftpsConnectionPoint.getEncoding()));
@@ -240,6 +246,11 @@ public class FTPSAdvancedOptionsComposite extends Composite implements IOptionsC
 		boolean explicit = securityMethodCombo.getSelectionIndex() == 0;
 		if (ftpsConnectionPoint.isExplicit() != explicit) {
 			ftpsConnectionPoint.setExplicit(explicit);
+			updated = true;
+		}
+		boolean validate = validateCertificateCheckbox.getSelection();
+		if (ftpsConnectionPoint.isValidateCertificate() != validate) {
+			ftpsConnectionPoint.setValidateCertificate(validate);
 			updated = true;
 		}
 		boolean passiveMode = modeCombo.getSelectionIndex() == 1;
@@ -295,6 +306,7 @@ public class FTPSAdvancedOptionsComposite extends Composite implements IOptionsC
 	 */
 	public void lockUI(boolean lock) {
 		securityMethodCombo.setEnabled(!lock);
+		validateCertificateCheckbox.setEnabled(!lock);
 		modeCombo.setEnabled(!lock);
 		portText.setEnabled(!lock);
 		encodingCombo.setEnabled(!lock);

@@ -45,5 +45,5 @@ import com.aptana.ide.core.io.vfs.IConnectionFileManager;
  */
 public interface IFTPSConnectionFileManager extends IConnectionFileManager {
 
-	public void init(String host, int port, IPath basePath, String login, char[] password, boolean explicit, boolean passive, String transferType, String encoding, String timezone);
+	public void init(String host, int port, IPath basePath, String login, char[] password, boolean explicit, boolean passive, String transferType, String encoding, String timezone, boolean validateCertificate);
 }
