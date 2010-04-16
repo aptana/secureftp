@@ -1031,7 +1031,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			try {
 				ftpFiles = ftpSTAT(dirPath.addTrailingSeparator().toPortableString());
 			} catch (FTPException e) {
-				if (e.getReplyCode() == 502) {
+				if (e.getReplyCode() == 501 || e.getReplyCode() == 502) {
 					statSupported = null;
 				} else if (e.getReplyCode() != 500) {
 					throwFileNotFound(e, dirPath);
