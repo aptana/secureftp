@@ -35,6 +35,8 @@
 
 package com.aptana.ide.filesystem.secureftp;
 
+import java.io.File;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -466,4 +468,12 @@ public class FTPSConnectionPoint extends ConnectionPoint implements IFTPSConnect
         }
         return true;
     }
+
+	/**
+	 * TODO: @remove
+	 */
+	public String getFileSeparator() {
+		// TODO Auto-generated method stub
+		return File.separator;
+	}
 }
