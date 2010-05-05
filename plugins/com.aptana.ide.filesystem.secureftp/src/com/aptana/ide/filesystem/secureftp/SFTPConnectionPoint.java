@@ -414,4 +414,12 @@ public class SFTPConnectionPoint extends ConnectionPoint implements ISFTPConnect
         }
         return true;
     }
+
+	/**
+	 * TODO: @remove
+	 */
+	public String getFileSeparator() {
+		// TODO Auto-generated method stub
+		return "/";
+	}
 }
