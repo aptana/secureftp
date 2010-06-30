@@ -76,6 +76,7 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPException;
 import com.enterprisedt.net.ftp.ssh.SSHFTPInputStream;
 import com.enterprisedt.net.ftp.ssh.SSHFTPOutputStream;
 import com.enterprisedt.net.j2ssh.configuration.SshConnectionProperties;
+import com.enterprisedt.net.j2ssh.sftp.SshFxpStatus;
 import com.enterprisedt.net.j2ssh.transport.publickey.InvalidSshKeyException;
 import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 
@@ -313,10 +314,10 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	}
 
 	private static void throwFileNotFound(FTPException e, IPath path) throws FileNotFoundException, FTPException {
-		if (e.getReplyCode() == -1) {
-			throw new FileNotFoundException(path.toPortableString());
-		}
-		throw e;		
+        int reply = e.getReplyCode();
+        if (reply == -1 || reply == SshFxpStatus.STATUS_FX_NO_SUCH_FILE || reply == SshFxpStatus.STATUS_FX_NO_SUCH_PATH) {
+             throw new FileNotFoundException(path.toPortableString());
+        }
 	}
 
 	private static void fillFileInfo(ExtendedFileInfo fileInfo, FTPFile ftpFile) {
@@ -442,7 +443,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		monitor = Policy.subMonitorFor(monitor, 1);
 		try {
 			FTPFile[] ftpFiles = listFiles(path, monitor);
-			monitor.beginTask("Gethering files details", ftpFiles.length);
+			monitor.beginTask("Gathering file details", ftpFiles.length);
 			List<ExtendedFileInfo> list = new ArrayList<ExtendedFileInfo>();
 			for (FTPFile ftpFile : ftpFiles) {
 				if (".".equals(ftpFile.getName()) || "..".equals(ftpFile.getName())) { //$NON-NLS-1$ //$NON-NLS-2$
@@ -807,9 +808,12 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	}
 
 	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
-		changeCurrentDir(dirPath);
-		Policy.checkCanceled(monitor);
-		return ftpClient.dirDetails("."); //$NON-NLS-1$
+        try {
+			return ftpClient.dirDetails(dirPath.toPortableString());
+		} catch (FTPException e) {
+			throwFileNotFound(e, dirPath);
+			return null; // never runs
+		}
 	}
 
 	private void recursiveDeleteTree(IPath path, IProgressMonitor monitor, MultiStatus status) throws IOException, ParseException {
