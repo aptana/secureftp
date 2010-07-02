@@ -615,7 +615,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			// forces one connection retry
 			if (connectionRetryCount < 1) {
 				connectionRetryCount++;
-				connect(monitor);
+				testOrConnect(monitor);
 				return fetchFile(path, options, monitor);
 			} else {
 				connectionRetryCount = 0;
@@ -678,7 +678,7 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 			// forces one connection retry
 			if (connectionRetryCount < 1) {
 				connectionRetryCount++;
-				connect(monitor);
+				testOrConnect(monitor);
 				return fetchFiles(path, options, monitor);
 			} else {
 				connectionRetryCount = 0;
