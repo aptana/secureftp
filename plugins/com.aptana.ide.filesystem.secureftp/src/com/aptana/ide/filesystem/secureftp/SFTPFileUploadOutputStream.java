@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2009 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -39,9 +39,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Date;
 
-import com.aptana.ide.filesystem.ftp.FTPClientPool;
-import com.enterprisedt.net.ftp.FTPClient;
-import com.enterprisedt.net.ftp.FTPClientInterface;
+import com.aptana.ide.core.IdeLog;
 import com.enterprisedt.net.ftp.FTPException;
 import com.enterprisedt.net.ftp.FileTransferOutputStream;
 import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
@@ -50,20 +48,18 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
  * @author Max Stepanov
  *
  */
-/* package */ class FTPFileUploadOutputStream extends OutputStream {
+public class SFTPFileUploadOutputStream extends OutputStream {
 
-	private FTPClientInterface ftpClient;
+	private SSHFTPClient ftpClient;
 	private FileTransferOutputStream ftpOutputStream;
 	private String filename;
 	private Date modificationTime;
 	private long permissions;
-	private FTPClientPool pool;
 	
 	/**
 	 * 
 	 */
-	public FTPFileUploadOutputStream(FTPClientPool pool, FTPClientInterface ftpClient, FileTransferOutputStream ftpOutputStream, String filename, Date modificationTime, long permissions) {
-		this.pool = pool;
+	public SFTPFileUploadOutputStream(SSHFTPClient ftpClient, FileTransferOutputStream ftpOutputStream, String filename, Date modificationTime, long permissions) {
 		this.ftpClient = ftpClient;
 		this.ftpOutputStream = ftpOutputStream;
 		this.filename = filename;
@@ -71,7 +67,7 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 		this.permissions = permissions;
 	}
 
-	private void safeQuit(boolean failed) {
+	private void safeClose(boolean failed) {
 		try {
 			if (ftpClient.connected()) {
 				if (failed) {
@@ -79,14 +75,13 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 				}
 			}
 		} catch (Exception e) {
-			// ignore
-		} finally  {
+			IdeLog.logError(SecureFTPPlugin.getDefault(), "SFTP upload error.", e);
+		} finally {
 			try {
 				ftpOutputStream.close();
 			} catch (IOException e) {
-				// ignore
+				IdeLog.logError(SecureFTPPlugin.getDefault(), "SFTP close stream error.", e);
 			}
-			pool.checkIn(ftpClient);
 		}
 	}
 
@@ -98,7 +93,7 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 		try {
 			ftpOutputStream.write(b);
 		} catch (IOException e) {
-			safeQuit(true);
+			safeClose(true);
 			throw e;
 		}
 	}
@@ -119,19 +114,14 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 						ftpClient.delete(filename);
 					}
 					ftpClient.rename(ftpOutputStream.getRemoteFile(), filename);
-                    if (ftpClient instanceof FTPClient) {
-                        ((FTPClient) ftpClient).site("CHMOD " + Long.toOctalString(permissions) //$NON-NLS-1$
-                                + " " + filename); //$NON-NLS-1$
-                    } else if (ftpClient instanceof SSHFTPClient) {
-                        ((SSHFTPClient) ftpClient).changeMode((int) (permissions & 0777), filename);
-                    }
+                    ((SSHFTPClient) ftpClient).changeMode((int) (permissions & 0777), filename);
 				}
 			} catch (FTPException e) {
-				safeQuit(true);
+				safeClose(true);
 				throw new IOException(e.getMessage()); 
 			}
 		} finally {
-			safeQuit(false);
+			safeClose(false);
 		}
 	}
 
@@ -143,7 +133,7 @@ import com.enterprisedt.net.ftp.ssh.SSHFTPClient;
 		try {
 			ftpOutputStream.write(b, off, len);
 		} catch (IOException e) {
-			safeQuit(true);
+			safeClose(true);
 			throw e;
 		}		
 	}

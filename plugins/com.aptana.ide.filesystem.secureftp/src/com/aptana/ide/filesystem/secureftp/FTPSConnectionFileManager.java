@@ -57,6 +57,7 @@ import com.aptana.ide.core.IdeLog;
 import com.aptana.ide.core.StringUtils;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
+import com.aptana.ide.filesystem.ftp.FTPClientPool;
 import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.aptana.ide.filesystem.ftp.IFTPConstants;
 import com.enterprisedt.net.ftp.FTPClient;
@@ -88,6 +89,7 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 	public void init(String host, int port, IPath basePath, String login, char[] password, boolean explicit, boolean passive, String transferType, String encoding, String timezone, boolean validateCertificate) {
 		Assert.isTrue(ftpClient == null, "FTPS connection has been already initiated");
 		try {
+			this.pool = new FTPClientPool(this);
 			ftpClient = createFTPClient();
 			this.host = host;
 			this.port = port;

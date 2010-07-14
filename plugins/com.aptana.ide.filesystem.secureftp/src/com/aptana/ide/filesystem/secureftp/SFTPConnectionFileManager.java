@@ -623,51 +623,18 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	@Override
 	protected InputStream readFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		monitor.beginTask("Initiating file download", 4);
-		SSHFTPClient downloadFtpClient = new SSHFTPClient();
 		try {
-			initFTPClient(downloadFtpClient, controlEncoding, compression);
-			downloadFtpClient.setValidator(ftpClient.getValidator());
-			downloadFtpClient.setRemoteHost(host);
-			downloadFtpClient.setRemotePort(port);
 			Policy.checkCanceled(monitor);
-			if (keyFilePath != null) {
-				downloadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
-			} else {
-				downloadFtpClient.setAuthentication(login, String.copyValueOf(password));
-			}
-			downloadFtpClient.connect();
-			monitor.worked(1);
-			Policy.checkCanceled(monitor);
-			downloadFtpClient.setType(ISFTPConstants.TRANSFER_TYPE_ASCII.equals(transferType)
-					? FTPTransferType.ASCII : FTPTransferType.BINARY);
-			try {
-				downloadFtpClient.chdir(path.removeLastSegments(1).toPortableString());
-			} catch (FTPException e) {
-				throwFileNotFound(e, path.removeLastSegments(1));
-			}
+			changeCurrentDir(path.removeLastSegments(1));
 			monitor.worked(1);
 			Policy.checkCanceled(monitor);
 			try {
-				return new FTPFileDownloadInputStream(downloadFtpClient,
-						new SSHFTPInputStream(downloadFtpClient, path.lastSegment()));
+				return new SFTPFileDownloadInputStream(new SSHFTPInputStream(ftpClient, path.toPortableString()));
 			} catch (FTPException e) {
 				throwFileNotFound(e, path);
 				return null;
 			}
 		} catch (Exception e) {
-			if (downloadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						downloadFtpClient.quit();
-					} else {
-						downloadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
@@ -685,49 +652,16 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	@Override
 	protected OutputStream writeFile(IPath path, long permissions, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		monitor.beginTask("Initiating file upload", 4);
-		SSHFTPClient uploadFtpClient = new SSHFTPClient();
 		try {
-			initFTPClient(uploadFtpClient, controlEncoding, compression);
-			uploadFtpClient.setValidator(ftpClient.getValidator());
-			uploadFtpClient.setRemoteHost(host);
-			uploadFtpClient.setRemotePort(port);
-			if (keyFilePath != null) {
-				uploadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
-			} else {
-				uploadFtpClient.setAuthentication(login, String.copyValueOf(password));
-			}
 			Policy.checkCanceled(monitor);
-			uploadFtpClient.connect();
+			changeCurrentDir(path.removeLastSegments(1));
 			monitor.worked(1);
 			Policy.checkCanceled(monitor);
-			uploadFtpClient.setType(ISFTPConstants.TRANSFER_TYPE_ASCII.equals(transferType)
-					? FTPTransferType.ASCII : FTPTransferType.BINARY);
-			IPath dirPath = path.removeLastSegments(1);
-			try {
-				uploadFtpClient.chdir(dirPath.toPortableString());
-			} catch (FTPException e) {
-				throwFileNotFound(e, dirPath);
-			}
-			monitor.worked(1);
-			Policy.checkCanceled(monitor);
-			return new FTPFileUploadOutputStream(uploadFtpClient,
-					new SSHFTPOutputStream(uploadFtpClient, generateTempFileName(path.lastSegment())),
-					path.lastSegment(),
+			return new SFTPFileUploadOutputStream(ftpClient,
+					new SSHFTPOutputStream(ftpClient, path.removeLastSegments(1).append(generateTempFileName(path.lastSegment())).toPortableString()),
+					path.toPortableString(),
 					new Date(), permissions);
 		} catch (Exception e) {
-			if (uploadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						uploadFtpClient.quit();
-					} else {
-						uploadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
