@@ -62,6 +62,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.PerformanceStats;
 import org.eclipse.core.runtime.Status;
 
 import com.aptana.ide.core.IdeLog;
@@ -160,12 +161,28 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 		ftpClient.setTransferBufferSize(TRANSFER_BUFFER_SIZE);
 	}
 
-	protected void initAndAuthFTPClient(FTPClient newFtpClient, IProgressMonitor monitor) throws IOException, FTPException {
+	private static void connectFTPClient(FTPClient ftpClient) throws IOException, FTPException {
+		PerformanceStats stats = PerformanceStats.getStats("com.aptana.ide.filesystem.ftp/perf/connect", //$NON-NLS-1$
+				FTPConnectionFileManager.class.getName());
+		stats.startRun(ftpClient.getRemoteHost());
+		try {
+			ftpClient.connect();
+		} finally {
+			stats.endRun();
+		}
+	}
+
+	protected void initAndAuthFTPClient(FTPClientInterface clientInterface, IProgressMonitor monitor) throws IOException, FTPException {
+		if (clientInterface.connected())
+		{
+			return;
+		}
+		FTPClient newFtpClient = (FTPClient) clientInterface;
 		initFTPClient(newFtpClient, ftpClient.getConnectMode() == FTPConnectMode.PASV, ftpClient.getControlEncoding());
 		newFtpClient.setRemoteHost(host);
 		newFtpClient.setRemotePort(port);
 		Policy.checkCanceled(monitor);
-		newFtpClient.connect();
+		connectFTPClient(newFtpClient);
 		monitor.worked(1);
 		Policy.checkCanceled(monitor);
 		newFtpClient.login(login, String.copyValueOf(password));
@@ -754,19 +771,6 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 		} catch (Exception e) {
 			setMessageLogger(downloadFtpClient, null);
 			pool.checkIn(downloadFtpClient);
-			if (downloadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						downloadFtpClient.quit();
-					} else {
-						downloadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
@@ -805,23 +809,14 @@ import com.enterprisedt.net.ftp.pro.ProFTPClient;
 		} catch (Exception e) {
 			setMessageLogger(uploadFtpClient, null);
 			pool.checkIn(uploadFtpClient);
-			if (uploadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						uploadFtpClient.quit();
-					} else {
-						uploadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
 				throw (FileNotFoundException) e;
+			} else if (e instanceof FTPException) {
+				if (((FTPException)e).getReplyCode() == 553) {
+					throw (FileNotFoundException) new FileNotFoundException(path.toPortableString()).initCause(e);
+				}
 			}
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, Messages.FTPConnectionFileManager_opening_file_failed, e));			
 		} finally {

@@ -51,6 +51,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.PerformanceStats;
 import org.eclipse.core.runtime.Status;
 
 import com.aptana.ide.core.IdeLog;
@@ -61,6 +62,7 @@ import com.aptana.ide.filesystem.ftp.FTPClientPool;
 import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.aptana.ide.filesystem.ftp.IFTPConstants;
 import com.enterprisedt.net.ftp.FTPClient;
+import com.enterprisedt.net.ftp.FTPClientInterface;
 import com.enterprisedt.net.ftp.FTPConnectMode;
 import com.enterprisedt.net.ftp.FTPException;
 import com.enterprisedt.net.ftp.FTPTransferType;
@@ -257,23 +259,38 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 		return null;
 	}
 
+	private static void connectFTPClient(FTPClient ftpClient) throws IOException, FTPException {
+		PerformanceStats stats = PerformanceStats.getStats("com.aptana.ide.filesystem.ftp/perf/connect", //$NON-NLS-1$
+				FTPSConnectionFileManager.class.getName());
+		stats.startRun(ftpClient.getRemoteHost());
+		try {
+			ftpClient.connect();
+		} finally {
+			stats.endRun();
+		}
+	}
+
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.filesystem.secureftp.FTPConnectionFileManager#initAndAuthFTPClient(com.enterprisedt.net.ftp.FTPClient, org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.ide.filesystem.secureftp.FTPConnectionFileManager#initAndAuthFTPClient(com.enterprisedt.net.ftp.FTPClientInterface, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void initAndAuthFTPClient(FTPClient newFtpClient, IProgressMonitor monitor) throws IOException, FTPException {
+	public void initAndAuthFTPClient(FTPClientInterface newFtpClient, IProgressMonitor monitor) throws IOException, FTPException {
+		if (newFtpClient.connected())
+		{
+			return;
+		}
 		SSLFTPClient newFtpsClient = (SSLFTPClient) newFtpClient;
 		initFTPSClient(newFtpsClient, !((SSLFTPClient) ftpClient).isImplicitFTPS(), ftpClient.getConnectMode() == FTPConnectMode.PASV, ftpClient.getControlEncoding(), validateCertificate);
 		newFtpClient.setRemoteHost(host);
 		newFtpClient.setRemotePort(port);
 		Policy.checkCanceled(monitor);
-		newFtpClient.connect();
+		connectFTPClient(newFtpsClient);
 		monitor.worked(1);
 		Policy.checkCanceled(monitor);
 		if (!newFtpsClient.isImplicitFTPS()) {
 			newFtpsClient.auth(securityMechanism);
 		}
-		newFtpClient.login(login, String.copyValueOf(password));
+		newFtpsClient.login(login, String.copyValueOf(password));
 		monitor.worked(1);
 	}
 
