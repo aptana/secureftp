@@ -59,6 +59,7 @@ import com.aptana.ide.core.StringUtils;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.filesystem.ftp.FTPClientPool;
+import com.aptana.ide.filesystem.ftp.FTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.aptana.ide.filesystem.ftp.IFTPConstants;
 import com.enterprisedt.net.ftp.FTPClient;
