@@ -296,7 +296,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		return ftpClient != null && ftpClient.connected();
 	}
 
-	private void changeCurrentDir(IPath path) throws FTPException, IOException {
+	protected void changeCurrentDir(IPath path) throws FTPException, IOException {
 		try {
 			if (cwd == null) {
 				cwd = new Path(ftpClient.pwd());
