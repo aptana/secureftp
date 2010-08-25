@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2009 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -38,41 +38,30 @@ package com.aptana.ide.filesystem.secureftp;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.enterprisedt.net.ftp.FTPClient;
-import com.enterprisedt.net.ftp.FTPClientInterface;
+import com.aptana.ide.core.IdeLog;
 import com.enterprisedt.net.ftp.FileTransferInputStream;
 
 /**
  * @author Max Stepanov
  *
  */
-/* package */ class FTPFileDownloadInputStream extends InputStream {
+public class SFTPFileDownloadInputStream extends InputStream {
 
-	private FTPClientInterface ftpClient;
 	private FileTransferInputStream ftpInputStream;
 	
 	/**
 	 * 
 	 */
-	public FTPFileDownloadInputStream(FTPClientInterface ftpClient, FileTransferInputStream ftpInputStream) {
-		this.ftpClient = ftpClient;
+	public SFTPFileDownloadInputStream(FileTransferInputStream ftpInputStream) {
 		this.ftpInputStream = ftpInputStream;
 	}
 	
-	private void safeQuit() {
-		if (ftpClient instanceof FTPClient) {
-			((FTPClient) ftpClient).setMessageListener(null);
-		}
+	private void safeClose() {
 		try {
-			if (ftpClient.connected()) {
-				ftpClient.quit();
-			}
-		} catch (Exception e) {
-			try {
-				ftpClient.quitImmediately();
-			} catch (Exception ignore) {
-			}
-		}		
+			ftpInputStream.close();
+		} catch (IOException e) {
+			IdeLog.logError(SecureFTPPlugin.getDefault(), "SFTP download error.", e);
+		}
 	}
 
 	/* (non-Javadoc)
@@ -83,7 +72,7 @@ import com.enterprisedt.net.ftp.FileTransferInputStream;
 		try {
 			return ftpInputStream.read();
 		} catch (IOException e) {
-			safeQuit();
+			safeClose();
 			throw e;
 		}
 	}
@@ -96,7 +85,7 @@ import com.enterprisedt.net.ftp.FileTransferInputStream;
 		try {
 			return ftpInputStream.available();
 		} catch (IOException e) {
-			safeQuit();
+			safeClose();
 			throw e;
 		}
 	}
@@ -109,7 +98,7 @@ import com.enterprisedt.net.ftp.FileTransferInputStream;
 		try {
 			ftpInputStream.close();
 		} finally {
-			safeQuit();
+			safeClose();
 		}
 	}
 
@@ -121,7 +110,7 @@ import com.enterprisedt.net.ftp.FileTransferInputStream;
 		try {
 			return ftpInputStream.read(b, off, len);
 		} catch (IOException e) {
-			safeQuit();
+			safeClose();
 			throw e;
 		}
 	}

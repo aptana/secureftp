@@ -321,7 +321,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
         }
         if (reply == SshFxpStatus.STATUS_FX_PERMISSION_DENIED) {
             throw new PermissionDeniedException(path.toPortableString());
-       }
+	}
 	}
 
 	private static void fillFileInfo(ExtendedFileInfo fileInfo, FTPFile ftpFile) {

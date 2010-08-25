@@ -21,10 +21,6 @@
       <update label="%updateSiteName" url="http://download.aptana.org/tools/studio/plugin/update/studio/"/>
    </url>
 
-   <includes
-         id="com.aptana.ide.feature.libraries.subscription"
-         version="0.0.0"/>
-
    <requires>
       <import plugin="org.eclipse.core.runtime"/>
       <import plugin="org.eclipse.jsch.core"/>

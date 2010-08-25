@@ -37,6 +37,7 @@ package com.aptana.ide.filesystem.secureftp;
 
 import org.eclipse.core.runtime.IAdapterFactory;
 
+import com.aptana.ide.filesystem.ftp.FTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.IFTPConnectionFileManager;
 
 /**
