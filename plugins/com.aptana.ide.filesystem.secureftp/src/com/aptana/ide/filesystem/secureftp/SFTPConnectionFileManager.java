@@ -312,6 +312,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			throw e;			
 		}
 	}
+	
 
 	private static void throwFileNotFound(FTPException e, IPath path) throws FileNotFoundException, FTPException {
         int reply = e.getReplyCode();
