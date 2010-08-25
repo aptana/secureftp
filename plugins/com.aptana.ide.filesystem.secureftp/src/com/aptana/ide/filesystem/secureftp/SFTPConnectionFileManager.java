@@ -63,6 +63,7 @@ import com.aptana.ide.core.IdeLog;
 import com.aptana.ide.core.StringUtils;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
+import com.aptana.ide.core.io.exception.PermissionDeniedException;
 import com.aptana.ide.core.io.preferences.PreferenceUtils;
 import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
 import com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager;
@@ -296,7 +297,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		return ftpClient != null && ftpClient.connected();
 	}
 
-	private void changeCurrentDir(IPath path) throws FTPException, IOException {
+	protected void changeCurrentDir(IPath path) throws FTPException, IOException {
 		try {
 			if (cwd == null) {
 				cwd = new Path(ftpClient.pwd());
@@ -306,18 +307,21 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 				cwd = path;
 			}
 		} catch (FTPException e) {
-			throwFileNotFound(e, path);
+			throwWrappedException(e, path);
 		} catch (IOException e) {
 			cwd = null;
 			throw e;			
 		}
 	}
 
-	private static void throwFileNotFound(FTPException e, IPath path) throws FileNotFoundException, FTPException {
+	private static void throwWrappedException(FTPException e, IPath path) throws FileNotFoundException, FTPException, PermissionDeniedException {
         int reply = e.getReplyCode();
         if (reply == -1 || reply == SshFxpStatus.STATUS_FX_NO_SUCH_FILE || reply == SshFxpStatus.STATUS_FX_NO_SUCH_PATH) {
              throw new FileNotFoundException(path.toPortableString());
         }
+        if (reply == SshFxpStatus.STATUS_FX_PERMISSION_DENIED) {
+            throw new PermissionDeniedException(path.toPortableString());
+       }
 	}
 
 	private static void fillFileInfo(ExtendedFileInfo fileInfo, FTPFile ftpFile) {
@@ -439,7 +443,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#fetchFiles(org.eclipse.core.runtime.IPath, int, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected ExtendedFileInfo[] fetchFiles(IPath path, int options, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
+	protected ExtendedFileInfo[] fetchFiles(IPath path, int options, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
 		monitor = Policy.subMonitorFor(monitor, 1);
 		try {
 			FTPFile[] ftpFiles = listFiles(path, monitor);
@@ -459,6 +463,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			}
 			return list.toArray(new ExtendedFileInfo[list.size()]);
 		} catch (FileNotFoundException e) {
+			throw e;
+		} catch (PermissionDeniedException e) {	
 			throw e;
 		} catch (OperationCanceledException e) {
 			throw e;
@@ -481,7 +487,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#createDirectory(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void createDirectory(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
+	protected void createDirectory(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
 		try {
 			try {
 				try {
@@ -492,9 +498,11 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 				ftpClient.mkdir(path.toPortableString());
 				changeFilePermissions(path, PreferenceUtils.getDirectoryPermissions(), monitor);
 			} catch (FTPException e) {
-				throwFileNotFound(e, path);
+				throwWrappedException(e, path);
 			}
 		} catch (FileNotFoundException e) {
+			throw e;
+		} catch (PermissionDeniedException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Creating directory failed", e));			
@@ -561,7 +569,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#renameFile(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void renameFile(IPath sourcePath, IPath destinationPath, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
+	protected void renameFile(IPath sourcePath, IPath destinationPath, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
 		try {
 			changeCurrentDir(Path.ROOT);
 			Policy.checkCanceled(monitor);
@@ -571,13 +579,15 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			try {
 				ftpClient.rename(sourcePath.toPortableString(), destinationPath.toPortableString());
 			} catch (FTPException e) {
-				throwFileNotFound(e, sourcePath);
+				throwWrappedException(e, sourcePath);
                 IdeLog.logError(SecureFTPPlugin.getDefault(), StringUtils
                         .format("Failed to rename {0} to {1}", new Object[] { sourcePath,
                                 destinationPath }), e);
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
+			throw e;
+		} catch (PermissionDeniedException e) {
 			throw e;
 		} catch (OperationCanceledException e) {
 			throw e;
@@ -621,57 +631,26 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#readFile(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected InputStream readFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
+	protected InputStream readFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
 		monitor.beginTask("Initiating file download", 4);
-		SSHFTPClient downloadFtpClient = new SSHFTPClient();
 		try {
-			initFTPClient(downloadFtpClient, controlEncoding, compression);
-			downloadFtpClient.setValidator(ftpClient.getValidator());
-			downloadFtpClient.setRemoteHost(host);
-			downloadFtpClient.setRemotePort(port);
 			Policy.checkCanceled(monitor);
-			if (keyFilePath != null) {
-				downloadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
-			} else {
-				downloadFtpClient.setAuthentication(login, String.copyValueOf(password));
-			}
-			downloadFtpClient.connect();
-			monitor.worked(1);
-			Policy.checkCanceled(monitor);
-			downloadFtpClient.setType(ISFTPConstants.TRANSFER_TYPE_ASCII.equals(transferType)
-					? FTPTransferType.ASCII : FTPTransferType.BINARY);
-			try {
-				downloadFtpClient.chdir(path.removeLastSegments(1).toPortableString());
-			} catch (FTPException e) {
-				throwFileNotFound(e, path.removeLastSegments(1));
-			}
+			changeCurrentDir(path.removeLastSegments(1));
 			monitor.worked(1);
 			Policy.checkCanceled(monitor);
 			try {
-				return new FTPFileDownloadInputStream(downloadFtpClient,
-						new SSHFTPInputStream(downloadFtpClient, path.lastSegment()));
+				return new SFTPFileDownloadInputStream(new SSHFTPInputStream(ftpClient, path.toPortableString()));
 			} catch (FTPException e) {
-				throwFileNotFound(e, path);
+				throwWrappedException(e, path);
 				return null;
 			}
 		} catch (Exception e) {
-			if (downloadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						downloadFtpClient.quit();
-					} else {
-						downloadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
 				throw (FileNotFoundException) e;
+			} else if (e instanceof PermissionDeniedException) {
+				throw (PermissionDeniedException) e;
 			}
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));			
 		} finally {
@@ -685,49 +664,16 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	@Override
 	protected OutputStream writeFile(IPath path, long permissions, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		monitor.beginTask("Initiating file upload", 4);
-		SSHFTPClient uploadFtpClient = new SSHFTPClient();
 		try {
-			initFTPClient(uploadFtpClient, controlEncoding, compression);
-			uploadFtpClient.setValidator(ftpClient.getValidator());
-			uploadFtpClient.setRemoteHost(host);
-			uploadFtpClient.setRemotePort(port);
-			if (keyFilePath != null) {
-				uploadFtpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
-			} else {
-				uploadFtpClient.setAuthentication(login, String.copyValueOf(password));
-			}
 			Policy.checkCanceled(monitor);
-			uploadFtpClient.connect();
+			changeCurrentDir(path.removeLastSegments(1));
 			monitor.worked(1);
 			Policy.checkCanceled(monitor);
-			uploadFtpClient.setType(ISFTPConstants.TRANSFER_TYPE_ASCII.equals(transferType)
-					? FTPTransferType.ASCII : FTPTransferType.BINARY);
-			IPath dirPath = path.removeLastSegments(1);
-			try {
-				uploadFtpClient.chdir(dirPath.toPortableString());
-			} catch (FTPException e) {
-				throwFileNotFound(e, dirPath);
-			}
-			monitor.worked(1);
-			Policy.checkCanceled(monitor);
-			return new FTPFileUploadOutputStream(uploadFtpClient,
-					new SSHFTPOutputStream(uploadFtpClient, generateTempFileName(path.lastSegment())),
-					path.lastSegment(),
+			return new SFTPFileUploadOutputStream(ftpClient,
+					new SSHFTPOutputStream(ftpClient, path.removeLastSegments(1).append(generateTempFileName(path.lastSegment())).toPortableString()),
+					path.toPortableString(),
 					new Date(), permissions);
 		} catch (Exception e) {
-			if (uploadFtpClient.connected()) {
-				try {
-					if (e instanceof OperationCanceledException
-							|| e instanceof FTPException
-							|| e instanceof FileNotFoundException) {
-						uploadFtpClient.quit();
-					} else {
-						uploadFtpClient.quitImmediately();
-					}
-				} catch (IOException ignore) {
-				} catch (FTPException ignore) {
-				}
-			}
 			if (e instanceof OperationCanceledException) {
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
@@ -811,7 +757,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
         try {
 			return ftpClient.dirDetails(dirPath.toPortableString());
 		} catch (FTPException e) {
-			throwFileNotFound(e, dirPath);
+        	throwWrappedException(e, dirPath);
 			return null; // never runs
 		}
 	}
