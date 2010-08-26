@@ -68,7 +68,6 @@ import com.aptana.ide.core.io.preferences.PreferenceUtils;
 import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
 import com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.ExpiringMap;
-import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.enterprisedt.net.ftp.FTPException;
 import com.enterprisedt.net.ftp.FTPFile;
 import com.enterprisedt.net.ftp.FTPTransferType;
@@ -142,7 +141,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			ftpClient.setAlgorithmEnabled(SSHFTPAlgorithm.COMPRESSION_NONE, true);
 		} else if (ISFTPConstants.COMPRESSION_ZLIB.equals(compression)) {
 			ftpClient.disableAllAlgorithms(SSHFTPAlgorithm.COMPRESSION);
-			ftpClient.setAlgorithmEnabled(SSHFTPAlgorithm.COMPRESSION_ZLIB, true);			
+			ftpClient.setAlgorithmEnabled(SSHFTPAlgorithm.COMPRESSION_ZLIB, true);
 		}
 		ftpClient.setTransportProvider(SshConnectionProperties.USE_STANDARD_SOCKET);
 		ftpClient.setConfigFlags(0);
@@ -197,9 +196,9 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 						ftpClient.setAuthentication(keyFilePath.toOSString(), login, String.copyValueOf(password));
 					} catch (InvalidSshKeyException e) {
 						if (password.length == 0) {
-							throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Private Key {0} requires passphrase.", keyFilePath.toOSString()), e));													
+							throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Private Key {0} requires passphrase.", keyFilePath.toOSString()), e));	
 						}
-						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Passphrase for Private Key {0} is invalid.", keyFilePath.toOSString()), e));						
+						throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, StringUtils.format("Passphrase for Private Key {0} is invalid.", keyFilePath.toOSString()), e));
 					}
 				} else {
 					if (password.length == 0 && !ISFTPConstants.LOGIN_ANONYMOUS.equals(login) && (context == null || !context.getBoolean(ConnectionContext.NO_PASSWORD_PROMPT))) {
@@ -244,7 +243,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Host name not found: "+e.getLocalizedMessage(), e));
 		} catch (FileNotFoundException e) {
 			safeQuit();
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Remote folder not found: "+e.getLocalizedMessage(), e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Remote folder not found: "+e.getLocalizedMessage(), e));
 		} catch (Exception e) {
 			safeQuit();
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Establishing SFTP connection failed:"+e.getLocalizedMessage(), e));
@@ -301,7 +300,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		return ftpClient != null && ftpClient.connected();
 	}
 
-	protected void changeCurrentDir(IPath path) throws FTPException, IOException {
+	protected void changeCurrentDir(IPath path) throws FTPException, IOException, CoreException {
 		try {
 			if (cwd == null) {
 				cwd = new Path(ftpClient.pwd());
@@ -314,17 +313,24 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			throwWrappedException(e, path);
 		} catch (IOException e) {
 			cwd = null;
-			throw e;			
+			throw e;
 		}
 	}
 
-	private static void throwWrappedException(FTPException e, IPath path) throws FileNotFoundException, FTPException, PermissionDeniedException {
-        int reply = e.getReplyCode();
+	private static void throwWrappedException(FTPException e, IPath path) throws FileNotFoundException, FTPException, CoreException {
+		int reply = e.getReplyCode();
+        
+        if (reply == -1 && e.getCause() instanceof FTPException) {
+        	reply = ((FTPException) e.getCause()).getReplyCode();
+        }
+        
         if (reply == -1 || reply == SshFxpStatus.STATUS_FX_NO_SUCH_FILE || reply == SshFxpStatus.STATUS_FX_NO_SUCH_PATH) {
              throw new FileNotFoundException(path.toPortableString());
         }
         if (reply == SshFxpStatus.STATUS_FX_PERMISSION_DENIED) {
-            throw new PermissionDeniedException(path.toPortableString());
+			PermissionDeniedException ex = new PermissionDeniedException(path.toPortableString(), e);
+			throw new CoreException(new Status(IStatus.ERROR, SecureFTPPlugin.PLUGIN_ID,
+					StringUtils.format("{0}: Permission denied", path.toPortableString()), ex));
         }
 	}
 
@@ -468,9 +474,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			return list.toArray(new ExtendedFileInfo[list.size()]);
 		} catch (FileNotFoundException e) {
 			throw e;
-		} catch (PermissionDeniedException e) {
-			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
-					StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
+		} catch (CoreException e) {
+			throw e;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
@@ -507,11 +512,10 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			}
 		} catch (FileNotFoundException e) {
 			throw e;
-		} catch (PermissionDeniedException e) {
-			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
-					StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
+		} catch (CoreException e) {
+			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Creating directory failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Creating directory failed", e));
 		}
 	}
 
@@ -565,7 +569,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			throw e;
 		} catch (Exception e) {
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID,
-					StringUtils.format("Deleting {0} failed", path), e));			
+					StringUtils.format("Deleting {0} failed", path), e));
 		} finally {
 			monitor.done();
 		}
@@ -595,11 +599,10 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			throw e;
 		} catch (OperationCanceledException e) {
 			throw e;
-		} catch (PermissionDeniedException e) {
-			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
-					StringUtils.format("{0}: Permission denied", destinationPath.toPortableString()), e));
+		} catch (CoreException e) {
+			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Renaming failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Renaming failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -628,7 +631,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Listing directory failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Listing directory failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -656,11 +659,10 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 				throw (OperationCanceledException) e;
 			} else if (e instanceof FileNotFoundException) {
 				throw (FileNotFoundException) e;
-			} else if (e instanceof PermissionDeniedException) {
-				throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
-						StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
+			} else if (e instanceof CoreException) {
+				throw (CoreException) e;
 			}
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -687,7 +689,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			} else if (e instanceof FileNotFoundException) {
 				throw (FileNotFoundException) e;
 			}
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -708,7 +710,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set modification time failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set modification time failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -734,7 +736,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set permissions failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set permissions failed", e));
 		} finally {
 			monitor.done();
 		}
@@ -755,13 +757,13 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set permissions failed", e));			
+			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Set permissions failed", e));
 		} finally {
 			monitor.done();
 		}
 	}
 
-	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
+	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException, CoreException {
         try {
 			return ftpClient.dirDetails(dirPath.toPortableString());
 		} catch (FTPException e) {
