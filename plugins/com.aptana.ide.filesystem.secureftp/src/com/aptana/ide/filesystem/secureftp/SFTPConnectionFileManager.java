@@ -68,6 +68,7 @@ import com.aptana.ide.core.io.preferences.PreferenceUtils;
 import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
 import com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager;
 import com.aptana.ide.filesystem.ftp.ExpiringMap;
+import com.aptana.ide.filesystem.ftp.FTPPlugin;
 import com.enterprisedt.net.ftp.FTPException;
 import com.enterprisedt.net.ftp.FTPFile;
 import com.enterprisedt.net.ftp.FTPTransferType;
@@ -92,7 +93,9 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	private SSHFTPClient ftpClient;
 	private IPath keyFilePath;
 	private String transferType;
+	@SuppressWarnings("unused")
 	private String controlEncoding;
+	@SuppressWarnings("unused")
 	private String compression;
 	private IPath cwd;
 	private Map<IPath, FTPFile> ftpFileCache = new ExpiringMap<IPath, FTPFile>(CACHE_TTL);
@@ -127,6 +130,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		}		
 	}
 
+	@SuppressWarnings("deprecation")
 	private static void initFTPClient(SSHFTPClient ftpClient, String encoding, String compression) throws IOException, FTPException {
 		ftpClient.setTimeout(TIMEOUT);
 		ftpClient.setControlEncoding(encoding);
@@ -321,7 +325,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
         }
         if (reply == SshFxpStatus.STATUS_FX_PERMISSION_DENIED) {
             throw new PermissionDeniedException(path.toPortableString());
-	}
+        }
 	}
 
 	private static void fillFileInfo(ExtendedFileInfo fileInfo, FTPFile ftpFile) {
@@ -443,7 +447,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#fetchFiles(org.eclipse.core.runtime.IPath, int, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected ExtendedFileInfo[] fetchFiles(IPath path, int options, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
+	protected ExtendedFileInfo[] fetchFiles(IPath path, int options, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		monitor = Policy.subMonitorFor(monitor, 1);
 		try {
 			FTPFile[] ftpFiles = listFiles(path, monitor);
@@ -464,8 +468,9 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			return list.toArray(new ExtendedFileInfo[list.size()]);
 		} catch (FileNotFoundException e) {
 			throw e;
-		} catch (PermissionDeniedException e) {	
-			throw e;
+		} catch (PermissionDeniedException e) {
+			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
+					StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
@@ -487,7 +492,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#createDirectory(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void createDirectory(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
+	protected void createDirectory(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		try {
 			try {
 				try {
@@ -503,7 +508,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 		} catch (FileNotFoundException e) {
 			throw e;
 		} catch (PermissionDeniedException e) {
-			throw e;
+			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
+					StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
 		} catch (Exception e) {
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Creating directory failed", e));			
 		}
@@ -569,7 +575,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#renameFile(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void renameFile(IPath sourcePath, IPath destinationPath, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
+	protected void renameFile(IPath sourcePath, IPath destinationPath, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		try {
 			changeCurrentDir(Path.ROOT);
 			Policy.checkCanceled(monitor);
@@ -587,10 +593,11 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			}
 		} catch (FileNotFoundException e) {
 			throw e;
-		} catch (PermissionDeniedException e) {
-			throw e;
 		} catch (OperationCanceledException e) {
 			throw e;
+		} catch (PermissionDeniedException e) {
+			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
+					StringUtils.format("{0}: Permission denied", destinationPath.toPortableString()), e));
 		} catch (Exception e) {
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Renaming failed", e));			
 		} finally {
@@ -631,7 +638,7 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 	 * @see com.aptana.ide.filesystem.ftp.BaseFTPConnectionFileManager#readFile(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected InputStream readFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
+	protected InputStream readFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		monitor.beginTask("Initiating file download", 4);
 		try {
 			Policy.checkCanceled(monitor);
@@ -650,7 +657,8 @@ import com.enterprisedt.net.j2ssh.transport.publickey.SshPrivateKeyFile;
 			} else if (e instanceof FileNotFoundException) {
 				throw (FileNotFoundException) e;
 			} else if (e instanceof PermissionDeniedException) {
-				throw (PermissionDeniedException) e;
+				throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
+						StringUtils.format("{0}: Permission denied", path.toPortableString()), e));
 			}
 			throw new CoreException(new Status(Status.ERROR, SecureFTPPlugin.PLUGIN_ID, "Opening file failed", e));			
 		} finally {
