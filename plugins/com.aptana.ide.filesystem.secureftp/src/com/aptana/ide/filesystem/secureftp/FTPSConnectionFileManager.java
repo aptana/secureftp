@@ -272,11 +272,11 @@ public class FTPSConnectionFileManager extends FTPConnectionFileManager implemen
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.filesystem.secureftp.FTPConnectionFileManager#initAndAuthFTPClient(com.enterprisedt.net.ftp.FTPClientInterface, org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.ide.filesystem.secureftp.FTPConnectionFileManager#initAndAuthFTPClient(com.enterprisedt.net.ftp.FTPClientInterface, org.eclipse.core.runtime.IProgressMonitor, boolean)
 	 */
 	@Override
-	public void initAndAuthFTPClient(FTPClientInterface newFtpClient, IProgressMonitor monitor) throws IOException, FTPException {
-		if (newFtpClient.connected())
+	public void initAndAuthFTPClient(FTPClientInterface newFtpClient, IProgressMonitor monitor, boolean forceConnect) throws IOException, FTPException {
+		if (!forceConnect && newFtpClient.connected())
 		{
 			return;
 		}
